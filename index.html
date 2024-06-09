@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Storage and Management</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            margin-top: 15px;
+        }
+        th, td {
+            text-align: center;
+        }
+        th {
+            background-color: #343a40;
+            color: #ffffff;
+        }
+        .btn {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 class="text-center">File Storage and Management</h2>
+        <input type="file" class="form-control mb-3" id="inputFile">
+        <div class="text-center">
+            <button class="btn btn-primary" onclick="saveFile()">Save</button>
+            <button class="btn btn-secondary" onclick="downloadJSON()">Download JSON</button>
+            <button class="btn btn-info" onclick="downloadPDF()">Download PDF</button>
+            <button class="btn btn-warning" onclick="downloadCSV()">Download CSV</button>
+            <input type="file" class="btn btn-info" id="fileInput" onchange="uploadJSON()" />
+        </div>
+        <h3 class="mt-4">Stored Files</h3>
+        <table class="table table-bordered" id="fileTable">
+            <thead>
+                <tr>
+                    <th>Index</th>
+                    <th>File Name</th>
+                    <th>File Type</th>
+                    <th>File Size</th>
+                    <th>Download</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Files will be added here dynamically -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        let storedFiles = [];
+
+        const saveFile = () => {
+            const inputFile = document.getElementById('inputFile').files[0];
+
+            if (inputFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const fileData = e.target.result;
+                    storedFiles.push({
+                        name: inputFile.name,
+                        type: inputFile.type,
+                        size: inputFile.size,
+                        data: fileData
+                    });
+                    document.getElementById('inputFile').value = '';
+                    alert('File saved!');
+                    loadFiles();
+                };
+                reader.readAsDataURL(inputFile);
+            } else {
+                alert('Please select a file');
+            }
+        };
+
+        const loadFiles = () => {
+            const tableBody = document.getElementById('fileTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+            storedFiles.forEach((file, index) => {
+                let row = tableBody.insertRow();
+                let cellIndex = row.insertCell(0);
+                let cellName = row.insertCell(1);
+                let cellType = row.insertCell(2);
+                let cellSize = row.insertCell(3);
+                let cellDownload = row.insertCell(4);
+
+                cellIndex.innerHTML = index + 1;
+                cellName.innerHTML = file.name;
+                cellType.innerHTML = file.type;
+                cellSize.innerHTML = (file.size / 1024).toFixed(2) + ' KB';
+                cellDownload.innerHTML = `<a href="${file.data}" download="${file.name}" class="btn btn-success">Download</a>`;
+            });
+        };
+
+        const downloadJSON = () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(storedFiles));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "files.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        };
+
+        const downloadPDF = async () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            storedFiles.forEach((file, index) => {
+                doc.text(`${index + 1}. ${file.name} (${file.type}) - ${(file.size / 1024).toFixed(2)} KB`, 10, 10 + (index * 10));
+            });
+            doc.save('files.pdf');
+        };
+
+        const downloadCSV = () => {
+            let csvContent = "data:text/csv;charset=utf-8,Index,File Name,File Type,File Size (KB)\n";
+            storedFiles.forEach((file, index) => {
+                csvContent += `${index + 1},${file.name},${file.type},${(file.size / 1024).toFixed(2)}\n`;
+            });
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", encodeURI(csvContent));
+            downloadAnchorNode.setAttribute("download", "files.csv");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        };
+
+        const uploadJSON = () => {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                storedFiles = JSON.parse(event.target.result);
+                loadFiles();
+            };
+
+            reader.readAsText(file);
+        };
+
+        // Load files on page load
+        window.onload = loadFiles;
+    </script>
+</body>
+</html>
